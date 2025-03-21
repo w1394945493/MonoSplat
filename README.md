@@ -1,25 +1,22 @@
 <p align="center">
   <h1 align="center">MVSplat: Efficient 3D Gaussian Splatting <br> from Sparse Multi-View Images</h1>
   <p align="center">
-    <a href="https://donydchen.github.io/">Yuedong Chen</a>
+    Yifan Liu
     &nbsp;·&nbsp;
-    <a href="https://haofeixu.github.io/">Haofei Xu</a>
+    Keyu Fan
     &nbsp;·&nbsp;
-    <a href="https://chuanxiaz.com/">Chuanxia Zheng</a>
+    Weihao Yu
     &nbsp;·&nbsp;
-    <a href="https://bohanzhuang.github.io/">Bohan Zhuang</a> <br>
-    <a href="https://people.inf.ethz.ch/marc.pollefeys/">Marc Pollefeys</a>
+    Chenxin Li
     &nbsp;·&nbsp;
-    <a href="http://www.cvlibs.net/">Andreas Geiger</a>
+    Hao Lu
     &nbsp;·&nbsp;
-    <a href="https://personal.ntu.edu.sg/astjcham/">Tat-Jen Cham</a>
-    &nbsp;·&nbsp;
-    <a href="https://jianfei-cai.github.io/">Jianfei Cai</a>
+    Yixuan Yuan
   </p>
-  <h3 align="center">ECCV 2024 Oral</h3>
-  <h3 align="center"><a href="https://arxiv.org/abs/2403.14627">Paper</a> | <a href="https://donydchen.github.io/mvsplat/">Project Page</a> | <a href="https://drive.google.com/drive/folders/14_E_5R6ojOWnLSrSVLVEMHnTiKsfddjU">Pretrained Models</a> </h3>
-<!--   <div align="center">
-    <a href="https://news.ycombinator.com/item?id=41222655">
+  <h3 align="center">CVPR 2025</h3>
+<!--   <h3 align="center"><a href="https://arxiv.org/abs/2403.14627">Paper</a> | <a href="https://donydchen.github.io/mvsplat/">Project Page</a> | <a href="https://drive.google.com/drive/folders/14_E_5R6ojOWnLSrSVLVEMHnTiKsfddjU">Pretrained Models</a> </h3>
+<!--   <div align="center"> -->
+<!--     <a href="https://news.ycombinator.com/item?id=41222655">
       <img
         alt="Featured on Hacker News"
         src="https://hackerbadge.vercel.app/api?id=41222655&type=dark"
@@ -27,13 +24,6 @@
     </a>
   </div> -->
 
-<ul>
-<li><b>21/10/24 Update:</b> Check out Haofei's <a href="https://github.com/cvg/depthsplat">DepthSplat</a> if you are interested in feed-forward 3DGS on more complex scenes (DL3DV-10K) and more input views (up to 12 views)!</li>
-</ul>
-<br>
-</p>
-
-https://github.com/donydchen/mvsplat/assets/5866866/c5dc5de1-819e-462f-85a2-815e239d8ff2
 
 ## Installation
 
