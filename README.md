@@ -106,8 +106,6 @@ dataset.view_sampler.index_path=assets/evaluation_index_dtu_nctx2.json \
 test.compute_scores=true
 ```
 
-**More running commands can be found at [more_commands.sh](more_commands.sh).**
-
 ## BibTeX
 
 ```bibtex
