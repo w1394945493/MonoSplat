@@ -1,6 +1,6 @@
 <p align="center">
-  <h1 align="center">MVSplat: Efficient 3D Gaussian Splatting <br> from Sparse Multi-View Images</h1>
-  <p align="center">
+  <h1 align="center">MonoSplat: Generalizable 3D Gaussian Splatting from Monocular Depth Foundation Models</h1>
+<!--   <p align="center">
     Yifan Liu
     &nbsp;·&nbsp;
     Keyu Fan
@@ -13,7 +13,7 @@
     &nbsp;·&nbsp;
     Yixuan Yuan
   </p>
-  <h3 align="center">CVPR 2025</h3>
+  <h3 align="center">CVPR 2025</h3> -->
 <!--   <h3 align="center"><a href="https://arxiv.org/abs/2403.14627">Paper</a> | <a href="https://donydchen.github.io/mvsplat/">Project Page</a> | <a href="https://drive.google.com/drive/folders/14_E_5R6ojOWnLSrSVLVEMHnTiKsfddjU">Pretrained Models</a> </h3>
 <!--   <div align="center"> -->
 <!--     <a href="https://news.ycombinator.com/item?id=41222655">
