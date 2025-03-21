@@ -113,4 +113,4 @@ test.compute_scores=true
 
 ## Acknowledgements
 
-The project is largely based on [pixelSplat](https://github.com/dcharatan/pixelsplat) and [MVSplat]([https://github.com/dcharatan/pixelsplat](https://github.com/donydchen/mvsplat)). Many thanks to these two projects for their excellent contributions!
+The project is largely based on [pixelSplat](https://github.com/dcharatan/pixelsplat) and [MVSplat](https://github.com/dcharatan/pixelsplat](https://github.com/donydchen/mvsplat). Many thanks to these two projects for their excellent contributions!
