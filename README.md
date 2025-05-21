@@ -32,7 +32,7 @@ Our MVSplat uses the same training datasets as pixelSplat and MVSplat. Below we 
 
 To render novel views and compute evaluation metrics from a pretrained model,
 
-* get the [pretrained models](), and save them to `/checkpoints`
+* get the [pretrained models](https://mycuhk-my.sharepoint.com/:u:/g/personal/1155195605_link_cuhk_edu_hk/EepgRlcdKLpOqSjjQNejr3QBy9BE566ljNBvs3C9ck1Jyg?e=YSIEgb), and save them to `/checkpoints`
 
 * run the following:
 
