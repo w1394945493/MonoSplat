@@ -1,28 +1,5 @@
 <p align="center">
   <h1 align="center">MonoSplat: Generalizable 3D Gaussian Splatting from Monocular Depth Foundation Models</h1>
-<!--   <p align="center">
-    Yifan Liu
-    &nbsp;·&nbsp;
-    Keyu Fan
-    &nbsp;·&nbsp;
-    Weihao Yu
-    &nbsp;·&nbsp;
-    Chenxin Li
-    &nbsp;·&nbsp;
-    Hao Lu
-    &nbsp;·&nbsp;
-    Yixuan Yuan
-  </p>
-  <h3 align="center">CVPR 2025</h3> -->
-<!--   <h3 align="center"><a href="https://arxiv.org/abs/2403.14627">Paper</a> | <a href="https://donydchen.github.io/mvsplat/">Project Page</a> | <a href="https://drive.google.com/drive/folders/14_E_5R6ojOWnLSrSVLVEMHnTiKsfddjU">Pretrained Models</a> </h3>
-<!--   <div align="center"> -->
-<!--     <a href="https://news.ycombinator.com/item?id=41222655">
-      <img
-        alt="Featured on Hacker News"
-        src="https://hackerbadge.vercel.app/api?id=41222655&type=dark"
-      />
-    </a>
-  </div> -->
 
 
 ## Installation
@@ -30,10 +7,10 @@
 To get started, clone this project, create a conda virtual environment using Python 3.10+, and install the requirements:
 
 ```bash
-git clone https://github.com/donydchen/mvsplat.git
-cd mvsplat
-conda create -n mvsplat python=3.10
-conda activate mvsplat
+git clone https://github.com/CUHK-AIM-Group/MonoSplat.git
+cd MonoSplat
+conda create -n monosplat python=3.10
+conda activate monosplat
 pip install torch==2.1.2 torchvision==0.16.2 torchaudio==2.1.2 --index-url https://download.pytorch.org/whl/cu118
 pip install -r requirements.txt
 ```
@@ -63,18 +40,12 @@ To render novel views and compute evaluation metrics from a pretrained model,
 ```bash
 # re10k
 python -m src.main +experiment=re10k \
-checkpointing.load=checkpoints/re10k.ckpt \
-mode=test \
-dataset/view_sampler=evaluation \
-test.compute_scores=true
-
-# acid
-python -m src.main +experiment=acid \
-checkpointing.load=checkpoints/acid.ckpt \
-mode=test \
-dataset/view_sampler=evaluation \
-dataset.view_sampler.index_path=assets/evaluation_index_acid.json \
-test.compute_scores=true
+    mode=test \
+    dataset/view_sampler=evaluation \
+    checkpointing.load=/path/to/checkpoint \
+    dataset.view_sampler.index_path=assets/evaluation_index_re10k_nctx10.json \
+    test.compute_scores=true \
+    wandb.mode=disabled
 ```
 
 * the rendered novel views will be stored under `outputs/test`
@@ -97,13 +68,14 @@ Our models are trained with a single A100 (80GB) GPU. They can also be trained o
 We use the default model trained on RealEstate10K to conduct cross-dataset evaluations. To evaluate them, *e.g.*, on DTU, run the following command
 
 ```bash
-# Table 2: RealEstate10K -> DTU
+# RealEstate10K -> DTU
 python -m src.main +experiment=dtu \
-checkpointing.load=checkpoints/re10k.ckpt \
-mode=test \
-dataset/view_sampler=evaluation \
-dataset.view_sampler.index_path=assets/evaluation_index_dtu_nctx2.json \
-test.compute_scores=true
+    mode=test \
+    checkpointing.load=/path/to/checkpoint \
+    dataset/view_sampler=evaluation \
+    dataset.view_sampler.index_path=assets/evaluation_index_dtu_nctx2.json \
+    test.compute_scores=true \
+    wandb.mode=disabled
 ```
 
 ## BibTeX
