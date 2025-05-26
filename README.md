@@ -80,6 +80,12 @@ python -m src.main +experiment=dtu \
 ## BibTeX
 
 ```bibtex
+@article{liu2025monosplat,
+  title={MonoSplat: Generalizable 3D Gaussian Splatting from Monocular Depth Foundation Models},
+  author={Liu, Yifan and Fan, Keyu and Yu, Weihao and Li, Chenxin and Lu, Hao and Yuan, Yixuan},
+  journal={arXiv preprint arXiv:2505.15185},
+  year={2025}
+}
 ```
 
 ## Acknowledgements
