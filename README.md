@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 ### RealEstate10K and ACID
 
-Our MVSplat uses the same training datasets as pixelSplat and MVSplat. Below we quote pixelSplat's [detailed instructions](https://github.com/dcharatan/pixelsplat?tab=readme-ov-file#acquiring-datasets) on getting datasets.
+Our MonoSplat uses the same training datasets as pixelSplat and MVSplat. Below we quote pixelSplat's [detailed instructions](https://github.com/dcharatan/pixelsplat?tab=readme-ov-file#acquiring-datasets) on getting datasets.
 
 ### DTU (For Testing Only)
 
@@ -64,7 +64,8 @@ Our models are trained with a single A100 (80GB) GPU. They can also be trained o
 
 ### Cross-Dataset Generalization
 
-We use the default model trained on RealEstate10K to conduct cross-dataset evaluations. To evaluate them, *e.g.*, on DTU, run the following command
+We employ our baseline model, which was trained using the RealEstate10K dataset, to perform extensive cross-dataset validation. For instance, to execute an evaluation on the DTU benchmark, simply issue the following command in the terminal:
+
 
 ```bash
 # RealEstate10K -> DTU
@@ -90,4 +91,4 @@ python -m src.main +experiment=dtu \
 
 ## Acknowledgements
 
-The project is largely based on [pixelSplat](https://github.com/dcharatan/pixelsplat) and [MVSplat](https://github.com/dcharatan/pixelsplat](https://github.com/donydchen/mvsplat ). Many thanks to these two projects for their excellent contributions!
+The project is largely based on [pixelSplat](https://github.com/dcharatan/pixelsplat) and [MVSplat](https://github.com/donydchen/mvsplat ). Many thanks to these two projects for their excellent contributions!
