@@ -67,7 +67,7 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
 
     def __init__(self, cfg: EncoderCostVolumeCfg) -> None:
         super().__init__(cfg)
-        
+
         # gaussians convertor
         self.gaussian_adapter = GaussianAdapter(cfg.gaussian_adapter)
 
@@ -114,19 +114,19 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
         scene_names: Optional[list] = None,
     ) -> Gaussians:
         device = context["image"].device
-        b, v, _, h, w = context["image"].shape
+        b, v, _, h, w = context["image"].shape # (bs,v,c,h,w) h:256,w:256
 
         # Sample depths from the resulting features.
-        gpp = self.cfg.gaussians_per_pixel
+        gpp = self.cfg.gaussians_per_pixel # gpp：1
         depths, densities, raw_gaussians = self.depth_predictor(
             context["image"],
             context["intrinsics"],
             context["extrinsics"],
             context["near"],
             context["far"],
-            gaussians_per_pixel=gpp,
+            gaussians_per_pixel=gpp, # 每个像素的高斯
             deterministic=deterministic,
-        )
+        ) # todo depths: (bs,v,h*w,1,1) densitites: (bs,v,h*w,1,1) raw_gaussians: (bs,v,h*w,84)
 
         # Convert the features and depths into Gaussians.
         xy_ray, _ = sample_image_grid((h, w), device)

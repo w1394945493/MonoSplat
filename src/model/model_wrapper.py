@@ -181,7 +181,7 @@ class ModelWrapper(LightningModule):
         # todo batch size获取
         batch: BatchedExample = self.data_shim(batch)
         b, v, _, h, w = batch["target"]["image"].shape
-        assert b == 1
+        assert b == 1 # todo：batch应为1
 
         # todo ---------------------------#
         # todo 推理
@@ -189,13 +189,13 @@ class ModelWrapper(LightningModule):
         with self.benchmarker.time("encoder"):
             gaussians = self.encoder(
                 batch["context"],
-                self.global_step,
+                self.global_step, # todo：0
                 deterministic=False,
             )
         with self.benchmarker.time("decoder", num_calls=v):
             output = self.decoder.forward(
                 gaussians,
-                batch["target"]["extrinsics"],
+                batch["target"]["extrinsics"], # todo：目标图像相机内外参
                 batch["target"]["intrinsics"],
                 batch["target"]["near"],
                 batch["target"]["far"],

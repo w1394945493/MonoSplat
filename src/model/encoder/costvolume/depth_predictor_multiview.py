@@ -281,35 +281,40 @@ class DepthPredictorMultiView(nn.Module):
     def forward(
         self,
         images,
-        intrinsics,
-        extrinsics,
-        near,
+        intrinsics, # todo 相机内参矩阵：(3,3)：单位不是像素(omni-scene中内参矩阵单位是像素)
+        extrinsics, # todo 相机外参矩阵：(4,4)
+        near, # todo near、far：深度范围
         far,
         gaussians_per_pixel=1,
         deterministic=True,
     ):
-
+        # todo -----------------------#
+        # todo 1) 选取参考视角：
         num_reference_views = 1
         # find nearest idxs
         cam_origins = extrinsics[:, :, :3, -1]  # [b, v, 3]
-        distance_matrix = torch.cdist(cam_origins, cam_origins, p=2)  # [b, v, v]
-        _, idx = torch.topk(distance_matrix, num_reference_views + 1, largest=False, dim=2) # [b, v, m+1]
+        distance_matrix = torch.cdist(cam_origins, cam_origins, p=2)  # [b, v, v] # todo torch.cdist: 计算相机位置之间的欧式距离
+        _, idx = torch.topk(distance_matrix, num_reference_views + 1, largest=False, dim=2) # [b, v, m+1] # todo 选择最近的视角作为参考
 
         # first normalize images
-        images = self.normalize_images(images)
+        images = self.normalize_images(images) # todo 对输入图像进行标准化处理(均值/方差归一化)
         b, v, _, ori_h, ori_w = images.shape
 
+        # todo -----------------------#
+        # todo 2) 编码器特征提取：
         # depth anything encoder
         resize_h, resize_w = ori_h // 14 * 14, ori_w // 14 * 14
-        concat = rearrange(images, "b v c h w -> (b v) c h w")
+        concat = rearrange(images, "b v c h w -> (b v) c h w") # todo：将多视角图像展平，进行ViT特征提取
         concat = F.interpolate(concat, (resize_h, resize_w), mode="bilinear", align_corners=True)
         features = self.pretrained.get_intermediate_layers(concat,
                                                            self.intermediate_layer_idx[self.vit_type],
                                                            return_class_token=True)
         # new decoder
-        features_mono, disps_rel = self.depth_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14)
-        features_mv = self.cost_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14)
+        features_mono, disps_rel = self.depth_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo 单视角特征用于单目深度
+        features_mv = self.cost_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo features_mv: 用于多视角特征融合
 
+        # todo -----------------------#
+        # todo 3) 多视角特征增强：
         features_mv = F.interpolate(features_mv, (64, 64), mode="bilinear", align_corners=True)
         features_mv = mv_feature_add_position(features_mv, 2, 64)
         features_mv_list = list(torch.unbind(rearrange(features_mv, "(b v) c h w -> b v c h w", b=b, v=v), dim=1))
@@ -320,7 +325,10 @@ class DepthPredictorMultiView(nn.Module):
         )
         features_mv = rearrange(torch.stack(features_mv_list, dim=1), "b v c h w -> (b v) c h w")  # [BV, C, H, W]
 
+        # todo -----------------------#
+        # todo 4) 代价体构建：
         # cost volume construction
+        # todo 根据深度候选点对特征进行投影(视差候选)
         features_mv_warped, intr_warped, poses_warped = (
             prepare_feat_proj_data_lists(
                 rearrange(features_mv, "(b v) c h w -> b v c h w", v=v, b=b),
@@ -348,6 +356,8 @@ class DepthPredictorMultiView(nn.Module):
             raw_correlation_in.append(raw_correlation_in_i)
         raw_correlation_in = torch.mean(torch.stack(raw_correlation_in, dim=1), dim=1)  # [B*V, D, H, W]
 
+        # todo -----------------------#
+        # todo 5) 代价体优化和深度预测：
         # refine cost volume and get depths
         features_mono_tmp = F.interpolate(features_mono, (64, 64), mode="bilinear", align_corners=True)
         raw_correlation_in = torch.cat((raw_correlation_in, features_mv, features_mono_tmp), dim=1)
@@ -359,6 +369,8 @@ class DepthPredictorMultiView(nn.Module):
         pdf_max = F.interpolate(pdf_max, (ori_h, ori_w), mode="bilinear", align_corners=True)
         disps_metric_fullres = F.interpolate(disps_metric, (ori_h, ori_w), mode="bilinear", align_corners=True)
 
+        # todo -----------------------#
+        # todo 6) 特征精细化：
         # feature refinement
         features_mv_in_fullres = F.interpolate(features_mv, (ori_h, ori_w), mode="bilinear", align_corners=True)
         features_mv_in_fullres = self.proj_feature_mv(features_mv_in_fullres)
@@ -373,6 +385,8 @@ class DepthPredictorMultiView(nn.Module):
                       dim=1)
             )
 
+        # todo -----------------------#
+        # todo 6) 生成高斯表示和密度
         # gaussians head
         raw_gaussians_in = [refine_out, features_mv_in_fullres, features_mono_in_fullres, images_reorder]
         raw_gaussians_in = torch.cat(raw_gaussians_in, dim=1)
@@ -407,6 +421,4 @@ class DepthPredictorMultiView(nn.Module):
         )
 
         raw_gaussians = rearrange(raw_gaussians, "(b v) c h w -> b v (h w) c", v=v, b=b)
-
-
         return depths, densities, raw_gaussians
