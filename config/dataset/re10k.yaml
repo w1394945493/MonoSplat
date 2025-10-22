@@ -1,8 +1,8 @@
 defaults:
   - view_sampler: bounded
 
-name: re10k
-roots: [datasets/re10k]
+name: re10k # todo: re10k dataset的类(重要的)
+roots: [datasets/re10k] # todo 数据集根目录，到train/test的上一级(重要的)
 make_baseline_1: true
 augment: true
 

@@ -87,7 +87,7 @@ def render_cuda(
     full_projection = view_matrix @ projection_matrix
 
     all_images = []
-    all_radii = []
+    # all_radii = []
     for i in range(b):
         # Set up a tensor for the gradients of the screen-space means.
         mean_gradients = torch.zeros_like(gaussian_means[i], requires_grad=True)
@@ -114,7 +114,18 @@ def render_cuda(
 
         row, col = torch.triu_indices(3, 3)
 
-        image, _, _, _, radii = rasterizer(
+        # todo -----------------------------------------#
+        # todo 似乎这个版本的GaussianRasterizer返回值是4个，且依次是：rendered_image, radii, rendered_depth, rendered_alpha
+
+        # image, _, _, _, radii = rasterizer(
+        #     means3D=gaussian_means[i],
+        #     means2D=mean_gradients,
+        #     shs=shs[i] if use_sh else None,
+        #     colors_precomp=None if use_sh else shs[i, :, 0, :],
+        #     opacities=gaussian_opacities[i, ..., None],
+        #     cov3D_precomp=gaussian_covariances[i, :, row, col],
+        # )
+        image, _, _, _ = rasterizer(
             means3D=gaussian_means[i],
             means2D=mean_gradients,
             shs=shs[i] if use_sh else None,
@@ -122,8 +133,9 @@ def render_cuda(
             opacities=gaussian_opacities[i, ..., None],
             cov3D_precomp=gaussian_covariances[i, :, row, col],
         )
+
         all_images.append(image)
-        all_radii.append(radii)
+        # all_radii.append(radii)
     return torch.stack(all_images)
 
 

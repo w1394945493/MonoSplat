@@ -35,11 +35,12 @@ class ViewSamplerEvaluation(ViewSampler[ViewSamplerEvaluationCfg]):
         super().__init__(cfg, stage, is_overfitting, cameras_are_circular, step_tracker)
 
         dacite_config = Config(cast=[tuple])
-        with cfg.index_path.open("r") as f:
+        with cfg.index_path.open("r") as f: # todo cfg.index_path: PosixPath('assets/evaluation_index_re10k_nctx2.json')
             self.index = {
                 k: None if v is None else from_dict(IndexEntry, v, dacite_config)
                 for k, v in json.load(f).items()
             }
+        return
 
     def sample(
         self,

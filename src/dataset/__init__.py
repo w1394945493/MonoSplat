@@ -15,14 +15,15 @@ DatasetCfg = DatasetRE10kCfg
 
 def get_dataset(
     cfg: DatasetCfg,
-    stage: Stage,
+    stage: Stage, # todo "train" "val" "test"
     step_tracker: StepTracker | None,
 ) -> Dataset:
-    view_sampler = get_view_sampler(
+    view_sampler = get_view_sampler( #! 定义view_sampler: 相关配置文件：cfg.index_path
         cfg.view_sampler,
         stage,
-        cfg.overfit_to_scene is not None,
-        cfg.cameras_are_circular,
+        cfg.overfit_to_scene is not None, # todo None
+        cfg.cameras_are_circular, # todo False
         step_tracker,
     )
+    # todo 定义数据集：
     return DATASETS[cfg.name](cfg, stage, view_sampler)

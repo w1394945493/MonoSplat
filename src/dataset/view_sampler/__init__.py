@@ -30,7 +30,7 @@ def get_view_sampler(
     cameras_are_circular: bool,
     step_tracker: StepTracker | None,
 ) -> ViewSampler[Any]:
-    return VIEW_SAMPLERS[cfg.name](
+    return VIEW_SAMPLERS[cfg.name]( # todo cfg.name: "evaluation": ViewSamplerEvaluation
         cfg,
         stage,
         overfit,

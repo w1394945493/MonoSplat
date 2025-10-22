@@ -1,4 +1,11 @@
+# 设置进程名
+from setproctitle import setproctitle
+setproctitle("wangyushen")
+
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+
 from pathlib import Path
 import warnings
 
@@ -15,10 +22,14 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers.wandb import WandbLogger
 
+
+import sys
+sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
+
 # Configure beartype and jaxtyping.
 with install_import_hook(
-    ("src",),
-    ("beartype", "beartype"),
+    ("src",), # todo：指定项目中的模块路径
+    ("beartype", "beartype"), # todo python的运行时类型检查工具
 ):
     from src.config import load_typed_root_config
     from src.dataset.data_module import DataModule
@@ -38,13 +49,14 @@ def cyan(text: str) -> str:
 
 @hydra.main(
     version_base=None,
-    config_path="../config",
-    config_name="main",
+    config_path="../config", # todo 配置文件所在文件夹
+    config_name="main", # todo Hydra加载main.yaml作为主配置文件
 )
 def train(cfg_dict: DictConfig):
     cfg = load_typed_root_config(cfg_dict)
     set_cfg(cfg_dict)
 
+    # todo 结果保存路径
     # Set up the output directory.
     if cfg_dict.output_dir is None:
         output_dir = Path(
@@ -54,9 +66,9 @@ def train(cfg_dict: DictConfig):
         output_dir = Path(cfg_dict.output_dir)
         os.makedirs(output_dir, exist_ok=True)
     print(cyan(f"Saving outputs to {output_dir}."))
-    latest_run = output_dir.parents[1] / "latest-run"
-    os.system(f"rm {latest_run}")
-    os.system(f"ln -s {output_dir} {latest_run}")
+    # latest_run = output_dir.parents[1] / "latest-run"
+    # os.system(f"rm {latest_run}")
+    # os.system(f"ln -s {output_dir} {latest_run}")
 
     # Set up logging with wandb.
     callbacks = []
@@ -97,6 +109,7 @@ def train(cfg_dict: DictConfig):
     for cb in callbacks:
         cb.CHECKPOINT_EQUALS_CHAR = '_'
 
+    # todo 预训练权重文件路径
     # Prepare the checkpoint for loading.
     checkpoint_path = update_checkpoint_path(cfg.checkpointing.load, cfg.wandb)
 
@@ -119,8 +132,9 @@ def train(cfg_dict: DictConfig):
     )
     torch.manual_seed(cfg_dict.seed + trainer.global_rank)
 
+    # todo -------------------------#
+    # todo (10.22 wys) 定义model
     encoder, encoder_visualizer = get_encoder(cfg.model.encoder)
-
     model_kwargs = {
         "optimizer_cfg": cfg.optimizer,
         "test_cfg": cfg.test,
@@ -133,8 +147,10 @@ def train(cfg_dict: DictConfig):
     }
     model_wrapper = ModelWrapper(**model_kwargs)
 
+    # todo -------------------------#
+    # todo (10.22 wys) 数据集定义
     data_module = DataModule(
-        cfg.dataset,
+        cfg.dataset, #! cfg.dataset.name: re10k
         cfg.data_loader,
         step_tracker,
         global_rank=trainer.global_rank,
@@ -150,7 +166,7 @@ def train(cfg_dict: DictConfig):
 
             model_wrapper.encoder.depth_predictor.load_state_dict(pretrained_model, strict=strict_load)
             print(cyan(f"Loaded pretrained monodepth: {cfg.checkpointing.pretrained_monodepth}"))
-            
+
         if cfg.checkpointing.pretrained_model is not None:
             pretrained_model = torch.load(cfg.checkpointing.pretrained_model, map_location='cpu')
             if 'state_dict' in pretrained_model:
@@ -158,11 +174,13 @@ def train(cfg_dict: DictConfig):
 
             model_wrapper.load_state_dict(pretrained_model, strict=strict_load)
             print(cyan(f"Loaded pretrained weights: {cfg.checkpointing.pretrained_model}"))
-            
+
         trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
             checkpoint_path if cfg.checkpointing.resume else None))
-    
+
     else:
+        # todo -------------------------#
+        # todo test：dataset 和 dataloader 实例化在test()中实现
         trainer.test(
             model_wrapper,
             datamodule=data_module,

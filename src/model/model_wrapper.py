@@ -177,10 +177,14 @@ class ModelWrapper(LightningModule):
         return total_loss
 
     def test_step(self, batch, batch_idx):
+        # todo ---------------------------#
+        # todo batch size获取
         batch: BatchedExample = self.data_shim(batch)
         b, v, _, h, w = batch["target"]["image"].shape
         assert b == 1
 
+        # todo ---------------------------#
+        # todo 推理
         # Render Gaussians.
         with self.benchmarker.time("encoder"):
             gaussians = self.encoder(
@@ -197,7 +201,7 @@ class ModelWrapper(LightningModule):
                 batch["target"]["far"],
                 (h, w),
                 depth_mode=None,
-            )
+            ) # todo：output：imgs
 
         (scene,) = batch["scene"]
         name = get_cfg()["wandb"]["name"]
@@ -205,6 +209,8 @@ class ModelWrapper(LightningModule):
         images_prob = output.color[0]
         rgb_gt = batch["target"]["image"][0]
 
+        # todo ---------------------------#
+        # todo 可视化结果保存
         # Save images.
         if self.test_cfg.save_image:
             for index, color in zip(batch["target"]["index"][0], images_prob):
@@ -217,7 +223,8 @@ class ModelWrapper(LightningModule):
                 [a for a in images_prob],
                 path / "video" / f"{scene}_frame_{frame_str}.mp4",
             )
-
+        # todo ---------------------------#
+        # todo 可视化结果保存
         # compute scores
         if self.test_cfg.compute_scores:
             if batch_idx < self.test_cfg.eval_time_skip_steps:

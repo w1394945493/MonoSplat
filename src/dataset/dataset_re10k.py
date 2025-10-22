@@ -57,7 +57,7 @@ class DatasetRE10k(IterableDataset):
     ) -> None:
         super().__init__()
         self.cfg = cfg
-        self.stage = stage
+        self.stage = stage # todo "train"/"val"/"test"
         self.view_sampler = view_sampler
         self.to_tensor = tf.ToTensor()
         # NOTE: update near & far; remember to DISABLE `apply_bounds_shim` in encoder
@@ -69,7 +69,7 @@ class DatasetRE10k(IterableDataset):
         # Collect chunks.
         self.chunks = []
         for root in cfg.roots:
-            root = root / self.data_stage
+            root = root / self.data_stage # todo：root数据集根目录 data_stage: "train"/"val"/"test"
             root_chunks = sorted(
                 [path for path in root.iterdir() if path.suffix == ".torch"]
             )
@@ -86,7 +86,7 @@ class DatasetRE10k(IterableDataset):
         indices = torch.randperm(len(lst))
         return [lst[x] for x in indices]
 
-    def __iter__(self):
+    def __iter__(self): #! 使对象作为一个迭代器
         # Chunks must be shuffled here (not inside __init__) for validation to show
         # random chunks.
         if self.stage in (("train", "val") if self.cfg.shuffle_val else ("train")):
@@ -123,9 +123,9 @@ class DatasetRE10k(IterableDataset):
                 if times_per_scene > 1:  # specifically for DTU
                     scene = f"{example['key']}_{(run_idx % times_per_scene):02d}"
                 else:
-                    scene = example["key"]
+                    scene = example["key"] #! 场景名
 
-                try:
+                try: # todo: self.view_sampler
                     context_indices, target_indices = self.view_sampler.sample(
                         scene,
                         extrinsics,
@@ -260,7 +260,9 @@ class DatasetRE10k(IterableDataset):
         for data_stage in data_stages:
             for root in self.cfg.roots:
                 # Load the root's index.
-                with (root / data_stage / "index.json").open("r") as f:
+                # todo wys 修改了一下
+                # with (root / data_stage / "index.json").open("r") as f:
+                with (root / 'anno' / f"{data_stage}_index.json").open("r") as f:
                     index = json.load(f)
                 index = {k: Path(root / data_stage / v) for k, v in index.items()}
 
