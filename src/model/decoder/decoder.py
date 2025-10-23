@@ -8,6 +8,11 @@ from torch import Tensor, nn
 from ...dataset import DatasetCfg
 from ..types import Gaussians
 
+# ? (wys 10.23)
+from typing import Union
+from ...dataset.data_module_nuscences import DatasetNuScencesCfg
+
+
 DepthRenderingMode = Literal[
     "depth",
     "log",
@@ -27,9 +32,15 @@ T = TypeVar("T")
 
 class Decoder(nn.Module, ABC, Generic[T]):
     cfg: T
-    dataset_cfg: DatasetCfg
+    # dataset_cfg: DatasetCfg
+    # ? (wys 10.23)
+    dataset_cfg: Union[DatasetCfg, DatasetNuScencesCfg]
 
-    def __init__(self, cfg: T, dataset_cfg: DatasetCfg) -> None:
+    def __init__(self, cfg: T,
+                 #  dataset_cfg: DatasetCfg
+                 # ? (wys 10.23)
+                 dataset_cfg: Union[DatasetCfg, DatasetNuScencesCfg]
+                 ) -> None:
         super().__init__()
         self.cfg = cfg
         self.dataset_cfg = dataset_cfg

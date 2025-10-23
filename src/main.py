@@ -25,22 +25,23 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 
 import sys
 sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
-
+# ? 
 # Configure beartype and jaxtyping.
-with install_import_hook(
-    ("src",), # todo：指定项目中的模块路径
-    ("beartype", "beartype"), # todo python的运行时类型检查工具
-):
-    from src.config import load_typed_root_config
-    from src.dataset.data_module import DataModule
-    from src.global_cfg import set_cfg
-    from src.loss import get_losses
-    from src.misc.LocalLogger import LocalLogger
-    from src.misc.step_tracker import StepTracker
-    from src.misc.wandb_tools import update_checkpoint_path
-    from src.model.decoder import get_decoder
-    from src.model.encoder import get_encoder
-    from src.model.model_wrapper import ModelWrapper
+# with install_import_hook(
+#     ("src",), # todo：指定项目中的模块路径
+#     ("beartype", "beartype"), # todo python的运行时类型检查工具
+# ): #! beartype库：会在函数调用时严格检查参数类型
+
+from src.config import load_typed_root_config
+from src.dataset.data_module import DataModule
+from src.global_cfg import set_cfg
+from src.loss import get_losses
+from src.misc.LocalLogger import LocalLogger
+from src.misc.step_tracker import StepTracker
+from src.misc.wandb_tools import update_checkpoint_path
+from src.model.decoder import get_decoder
+from src.model.encoder import get_encoder
+from src.model.model_wrapper import ModelWrapper
 
 
 def cyan(text: str) -> str:
@@ -149,17 +150,27 @@ def train(cfg_dict: DictConfig):
 
     # todo -------------------------#
     # todo (10.22 wys) 数据集定义
-    data_module = DataModule(
-        cfg.dataset, #! cfg.dataset.name: re10k
-        cfg.data_loader,
-        step_tracker,
-        global_rank=trainer.global_rank,
-    )
+    if cfg.dataset.name == 're10k':
+        data_module = DataModule(
+            cfg.dataset, #! cfg.dataset.name: re10k
+            cfg.data_loader,
+            step_tracker,
+            global_rank=trainer.global_rank,
+        )
+    #? 增加了nuscences (wys 10.23)
+    elif cfg.dataset.name == 'nuscences':
+        from src.dataset.data_module_nuscences import DataModuleForNuScences
+        data_module = DataModuleForNuScences(
+            dataset_cfg=cfg.dataset,
+            data_loader_cfg=cfg.data_loader,
+            global_rank=trainer.global_rank,
+        )
 
     if cfg.mode == "train":
+        strict_load = False
+        # todo 加载单目深度模型
         # only load monodepth
         if cfg.checkpointing.pretrained_monodepth is not None:
-            strict_load = False
             pretrained_model = torch.load(cfg.checkpointing.pretrained_monodepth, map_location='cpu')
             if 'state_dict' in pretrained_model:
                 pretrained_model = pretrained_model['state_dict']
@@ -167,6 +178,7 @@ def train(cfg_dict: DictConfig):
             model_wrapper.encoder.depth_predictor.load_state_dict(pretrained_model, strict=strict_load)
             print(cyan(f"Loaded pretrained monodepth: {cfg.checkpointing.pretrained_monodepth}"))
 
+        # todo 加载预训练权重文件
         if cfg.checkpointing.pretrained_model is not None:
             pretrained_model = torch.load(cfg.checkpointing.pretrained_model, map_location='cpu')
             if 'state_dict' in pretrained_model:
@@ -175,8 +187,10 @@ def train(cfg_dict: DictConfig):
             model_wrapper.load_state_dict(pretrained_model, strict=strict_load)
             print(cyan(f"Loaded pretrained weights: {cfg.checkpointing.pretrained_model}"))
 
-        trainer.fit(model_wrapper, datamodule=data_module, ckpt_path=(
-            checkpoint_path if cfg.checkpointing.resume else None))
+        trainer.fit(model_wrapper,
+                    datamodule=data_module,
+                    ckpt_path=(checkpoint_path if cfg.checkpointing.resume else None)
+                )
 
     else:
         # todo -------------------------#

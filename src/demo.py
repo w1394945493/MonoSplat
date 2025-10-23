@@ -113,10 +113,6 @@ def main(cfg_dict: DictConfig):
     else:
         raise ValueError(f'unsupported dataset: {cfg.dataset.name}')
 
-
-
-
-
     with torch.no_grad():
         model_wrapper.eval()
         for i_iter, batch in enumerate(tqdm(val_dataloader, desc="Processing")):

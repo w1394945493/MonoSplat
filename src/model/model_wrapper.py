@@ -176,6 +176,8 @@ class ModelWrapper(LightningModule):
         )
         self.log("train/psnr_probabilistic", psnr_probabilistic.mean())
 
+        # todo ----------------------------#
+        # todo 损失计算
         # Compute and log loss.
         total_loss = 0
         for loss_fn in self.losses:

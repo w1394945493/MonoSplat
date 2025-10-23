@@ -41,11 +41,11 @@ optimizer:
   cosine_lr: true
 
 checkpointing:
-  load: null
+  load: null # todo test时，从此路径加载权重；train时，从此路径加载resume
   every_n_train_steps: 20000  # 5000
   save_top_k: -1
-  pretrained_model: null
-  pretrained_monodepth: null
+  pretrained_model: null # todo trian时，从此路径加载预训练模型权重
+  pretrained_monodepth: null # todo train时，从此路径加载特征提取预训练权重
   resume: true
 
 train:
@@ -54,7 +54,7 @@ train:
   print_log_every_n_steps: 1
 
 test:
-  output_path: outputs/test
+  output_path: outputs/test # todo test时，结果保存在此路径下
   compute_scores: false
   eval_time_skip_steps: 0
   save_image: true

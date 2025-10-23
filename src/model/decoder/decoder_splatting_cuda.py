@@ -11,6 +11,9 @@ from ..types import Gaussians
 from .cuda_splatting import DepthRenderingMode, render_cuda, render_depth_cuda
 from .decoder import Decoder, DecoderOutput
 
+# ? (wys 10.23)
+from typing import Union
+from ...dataset.data_module_nuscences import DatasetNuScencesCfg
 
 @dataclass
 class DecoderSplattingCUDACfg:
@@ -23,7 +26,9 @@ class DecoderSplattingCUDA(Decoder[DecoderSplattingCUDACfg]):
     def __init__(
         self,
         cfg: DecoderSplattingCUDACfg,
-        dataset_cfg: DatasetCfg,
+        # dataset_cfg: DatasetCfg,
+        # ? (wys 10.23) 增加nuscences
+        dataset_cfg: Union[DatasetCfg, DatasetNuScencesCfg],
     ) -> None:
         super().__init__(cfg, dataset_cfg)
         self.register_buffer(

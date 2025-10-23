@@ -72,7 +72,7 @@ class DatasetRE10k(IterableDataset):
 
         # Collect chunks.
         self.chunks = []
-        for root in cfg.roots:
+        for root in cfg.roots: # todo data_stage: stage = test/val时，均为test
             root = root / self.data_stage # todo：root数据集根目录 data_stage: "train"/"val"/"test"
             root_chunks = sorted(
                 [path for path in root.iterdir() if path.suffix == ".torch"]
