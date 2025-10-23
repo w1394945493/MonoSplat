@@ -51,6 +51,8 @@ def render_cuda(
     far: Float[Tensor, " batch"],
     image_shape: tuple[int, int],
     background_color: Float[Tensor, "batch 3"],
+
+    # todo 高斯点相关
     gaussian_means: Float[Tensor, "batch gaussian 3"],
     gaussian_covariances: Float[Tensor, "batch gaussian 3 3"],
     gaussian_sh_coefficients: Float[Tensor, "batch gaussian 3 d_sh"],
@@ -96,18 +98,20 @@ def render_cuda(
         except Exception:
             pass
 
+        # todo
         settings = GaussianRasterizationSettings(
-            image_height=h,
+            image_height=h, # todo 输出图像高和宽
             image_width=w,
-            tanfovx=tan_fov_x[i].item(),
+            tanfovx=tan_fov_x[i].item(), # todo 相机视场角
             tanfovy=tan_fov_y[i].item(),
-            bg=background_color[i],
-            scale_modifier=1.0,
+            bg=background_color[i], # todo 背景颜色
+            scale_modifier=1.0, # todo 高斯点大小
             viewmatrix=view_matrix[i],
             projmatrix=full_projection[i],
             sh_degree=degree,
             campos=extrinsics[i, :3, 3],
-            prefiltered=False,  # This matches the original usage.
+
+            prefiltered=False,  # This matches the original usage. # todo prefiltered和debug: False
             debug=False,
         )
         rasterizer = GaussianRasterizer(settings)
@@ -115,7 +119,7 @@ def render_cuda(
         row, col = torch.triu_indices(3, 3)
 
         # todo -----------------------------------------#
-        # todo 似乎这个版本的GaussianRasterizer返回值是4个，且依次是：rendered_image, radii, rendered_depth, rendered_alpha
+        # todo GaussianRasterizer返回值是4个，依次是：rendered_image, radii, rendered_depth, rendered_alpha
 
         # image, _, _, _, radii = rasterizer(
         #     means3D=gaussian_means[i],
@@ -126,12 +130,12 @@ def render_cuda(
         #     cov3D_precomp=gaussian_covariances[i, :, row, col],
         # )
         image, _, _, _ = rasterizer(
-            means3D=gaussian_means[i],
-            means2D=mean_gradients,
+            means3D=gaussian_means[i], # todo 每个高斯的中心位置
+            means2D=mean_gradients, # todo 新构建的全零张量
             shs=shs[i] if use_sh else None,
             colors_precomp=None if use_sh else shs[i, :, 0, :],
             opacities=gaussian_opacities[i, ..., None],
-            cov3D_precomp=gaussian_covariances[i, :, row, col],
+            cov3D_precomp=gaussian_covariances[i, :, row, col], # todo 预计算的三维协方差矩阵
         )
 
         all_images.append(image)

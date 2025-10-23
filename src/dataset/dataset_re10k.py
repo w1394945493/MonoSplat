@@ -117,9 +117,10 @@ class DatasetRE10k(IterableDataset):
             # for example in chunk:
             times_per_scene = self.cfg.test_times_per_scene
             for run_idx in range(int(times_per_scene * len(chunk))):
-                example = chunk[run_idx // times_per_scene]
+                example = chunk[run_idx // times_per_scene] # todo example dict: 'url', 'timestamps', 'cameras', 'images', 'key'
 
-                extrinsics, intrinsics = self.convert_poses(example["cameras"])
+                extrinsics, intrinsics = self.convert_poses(example["cameras"]) # todo: "cameras": (N,18): N为图像数量 "timestamps": (N)
+                # todo：
                 if times_per_scene > 1:  # specifically for DTU
                     scene = f"{example['key']}_{(run_idx % times_per_scene):02d}"
                 else:

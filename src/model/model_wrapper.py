@@ -120,6 +120,36 @@ class ModelWrapper(LightningModule):
             self.test_step_outputs = {}
             self.time_skip_steps_dict = {"encoder": 0, "decoder": 0}
 
+    # todo (wys 10.23) 参考自Omni-Scene
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
+    # todo (wys 10.23) 参考自Omni-Scene
+    def get_data(self,batch):
+        # ================== batch data process ================== #
+        device_id = self.device
+
+        # todo 输入
+        batch['context']['extrinsics'] = batch['context']['extrinsics'].to(device_id)
+        batch['context']['intrinsics'] = batch['context']['intrinsics'].to(device_id)
+        batch['context']['image'] = batch['context']['image'].to(device_id)
+        batch['context']['near'] = batch['context']['near'].to(device_id)
+        batch['context']['far'] = batch['context']['far'].to(device_id)
+        batch['context']['index'] = batch['context']['index'].to(device_id)
+
+        # todo 输出图像(监督真值)
+        batch['target']['extrinsics'] = batch['target']['extrinsics'].to(device_id)
+        batch['target']['intrinsics'] = batch['target']['intrinsics'].to(device_id)
+        batch['target']['image'] = batch['target']['image'].to(device_id)
+        batch['target']['near'] = batch['target']['near'].to(device_id)
+        batch['target']['far'] = batch['target']['far'].to(device_id)
+        batch['target']['index'] = batch['target']['index'].to(device_id)
+
+        batch['scene'] = batch['scene']
+
+        return batch
+
     def training_step(self, batch, batch_idx):
         batch: BatchedExample = self.data_shim(batch)
         _, _, _, h, w = batch["target"]["image"].shape
@@ -248,6 +278,77 @@ class ModelWrapper(LightningModule):
             self.test_step_outputs[f"lpips"].append(
                 compute_lpips(rgb_gt, rgb).mean().item()
             )
+
+    def forward_test(self, batch, batch_idx=0):
+
+        #?：get_data(): 将数据移动到指定设备(gpu)
+        batch = self.get_data(batch)
+        # todo: 对数据进行修改，
+        batch: BatchedExample = self.data_shim(batch)
+        b, v, _, h, w = batch["target"]["image"].shape
+        assert b == 1 # todo：batch应为1
+
+        gaussians = self.encoder(
+            batch["context"],
+            self.global_step, # todo：0
+            deterministic=False,
+        )
+
+        output = self.decoder.forward(
+            gaussians,
+            batch["target"]["extrinsics"], # todo：目标图像相机内外参
+            batch["target"]["intrinsics"],
+            batch["target"]["near"],
+            batch["target"]["far"],
+            (h, w),
+            depth_mode=None, # todo None
+        ) # todo：output：imgs
+
+        (scene,) = batch["scene"]
+        name = get_cfg()["wandb"]["name"]
+        path = self.test_cfg.output_path / name
+        images_prob = output.color[0]
+        rgb_gt = batch["target"]["image"][0]
+
+        # todo ---------------------------#
+        # todo 可视化结果保存
+        # Save images.
+        if self.test_cfg.save_image:
+            for index, color in zip(batch["target"]["index"][0], images_prob):
+                save_image(color, path / scene / f"color/{index:0>6}.png")
+        # save video
+        if self.test_cfg.save_video:
+            frame_str = "_".join([str(x.item()) for x in batch["context"]["index"][0]])
+            save_video(
+                [a for a in images_prob],
+                path / "video" / f"{scene}_frame_{frame_str}.mp4",
+            )
+        # todo ---------------------------#
+        # todo 可视化结果保存
+        # compute scores
+        if self.test_cfg.compute_scores:
+            if batch_idx < self.test_cfg.eval_time_skip_steps:
+                self.time_skip_steps_dict["encoder"] += 1
+                self.time_skip_steps_dict["decoder"] += v
+            rgb = images_prob
+
+            if f"psnr" not in self.test_step_outputs:
+                self.test_step_outputs[f"psnr"] = []
+            if f"ssim" not in self.test_step_outputs:
+                self.test_step_outputs[f"ssim"] = []
+            if f"lpips" not in self.test_step_outputs:
+                self.test_step_outputs[f"lpips"] = []
+
+            self.test_step_outputs[f"psnr"].append(
+                compute_psnr(rgb_gt, rgb).mean().item()
+            )
+            self.test_step_outputs[f"ssim"].append(
+                compute_ssim(rgb_gt, rgb).mean().item()
+            )
+            self.test_step_outputs[f"lpips"].append(
+                compute_lpips(rgb_gt, rgb).mean().item()
+            )
+        return
 
     def on_test_end(self) -> None:
         name = get_cfg()["wandb"]["name"]
