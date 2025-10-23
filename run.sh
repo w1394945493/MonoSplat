@@ -47,7 +47,7 @@ python /home/lianghao/wangyushen/Projects/MonoSplat/src/main.py \
 
 #? ------------------------------------------------#
 #? (10.23 wys) MonoSplat 在 nuScences 数据集上训练
-CUDA_VISIBLE_DEVICES=6 python /home/lianghao/wangyushen/Projects/MonoSplat/src/main.py \
+CUDA_VISIBLE_DEVICES=3,4,5,6 python /home/lianghao/wangyushen/Projects/MonoSplat/src/main.py \
     +experiment=nuscences \
     mode=train \
     checkpointing.pretrained_model=/home/lianghao/wangyushen/data/wangyushen/Weights/monosplat/epoch_63-step_300000.ckpt \
@@ -57,8 +57,9 @@ CUDA_VISIBLE_DEVICES=6 python /home/lianghao/wangyushen/Projects/MonoSplat/src/m
     data_loader.train.num_workers=4 \
     data_loader.val.batch_size=1 \
     data_loader.val.num_workers=4 \
-    trainer.max_steps=30000 \
-    checkpointing.every_n_train_steps=5000 \
-    train.print_log_every_n_steps=1000 \
+    trainer.max_steps=100_000 \
+    trainer.val_check_interval=10_000 \
+    checkpointing.every_n_train_steps=10_000 \
+    train.print_log_every_n_steps=10_000 \
     wandb.mode=disabled \
     output_dir=/home/lianghao/wangyushen/data/wangyushen/Output/mono_splat/nuscenes/train

@@ -63,9 +63,9 @@ test:
 seed: 111123
 
 trainer:
-  max_steps: 1
-  val_check_interval: 0.5
-  gradient_clip_val: 0.5
+  max_steps: 1 #! 最大迭代次数，即迭代多少次后停止
+  val_check_interval: 0.5 #! 0-1之间，如0.5 训练一半评估；大于1，整数，迭代多少此后评估
+  gradient_clip_val: 0.5 #! 控制梯度大小
   num_sanity_val_steps: 2
   num_nodes: 1
 

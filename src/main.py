@@ -3,7 +3,7 @@ from setproctitle import setproctitle
 setproctitle("wangyushen")
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
 
 from pathlib import Path
@@ -21,7 +21,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
 )
 from pytorch_lightning.loggers.wandb import WandbLogger
-
+from pytorch_lightning.strategies import DDPStrategy
 
 import sys
 sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
@@ -122,9 +122,10 @@ def train(cfg_dict: DictConfig):
         max_epochs=-1,
         accelerator="gpu",
         logger=logger,
-        devices="auto",
-        num_nodes=cfg.trainer.num_nodes,
-        strategy="ddp" if torch.cuda.device_count() > 1 else "auto",
+        devices="auto", # todo 自动调用所有可用gpu训练
+        num_nodes=cfg.trainer.num_nodes, # todo 1 单机
+        # strategy="ddp" if torch.cuda.device_count() > 1 else "auto",
+        strategy=DDPStrategy(find_unused_parameters=True),
         callbacks=callbacks,
         val_check_interval=cfg.trainer.val_check_interval,
         enable_progress_bar=cfg.mode == "test",
