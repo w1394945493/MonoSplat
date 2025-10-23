@@ -23,8 +23,8 @@ from .view_sampler import ViewSampler
 
 @dataclass
 class DatasetRE10kCfg(DatasetCfgCommon):
-    name: Literal["re10k"]
-    roots: list[Path]
+    name: Literal["re10k"] # todo：这里限制了cfg.dataset.name 只能是列表中的命名
+    roots: list[Path] # todo 必须有这些字段
     baseline_epsilon: float
     max_fov: float
     make_baseline_1: bool
@@ -37,6 +37,9 @@ class DatasetRE10kCfg(DatasetCfgCommon):
     far: float = -1.0
     baseline_scale_bounds: bool = True
     shuffle_val: bool = True
+
+
+
 
 
 class DatasetRE10k(IterableDataset):
@@ -61,6 +64,7 @@ class DatasetRE10k(IterableDataset):
         self.view_sampler = view_sampler
         self.to_tensor = tf.ToTensor()
         # NOTE: update near & far; remember to DISABLE `apply_bounds_shim` in encoder
+        # todo 深度范围的边界
         if cfg.near != -1:
             self.near = cfg.near
         if cfg.far != -1:
@@ -120,7 +124,7 @@ class DatasetRE10k(IterableDataset):
                 example = chunk[run_idx // times_per_scene] # todo example dict: 'url', 'timestamps', 'cameras', 'images', 'key'
 
                 extrinsics, intrinsics = self.convert_poses(example["cameras"]) # todo: "cameras": (N,18): N为图像数量 "timestamps": (N)
-                # todo：
+                # todo：convert_pose: 恢复标准的外参矩阵(extrinsics)和内参矩阵(intrinsics)
                 if times_per_scene > 1:  # specifically for DTU
                     scene = f"{example['key']}_{(run_idx % times_per_scene):02d}"
                 else:
@@ -179,14 +183,14 @@ class DatasetRE10k(IterableDataset):
                 else:
                     scale = 1
 
-                nf_scale = scale if self.cfg.baseline_scale_bounds else 1.0
+                nf_scale = scale if self.cfg.baseline_scale_bounds else 1.0 # todo nf_scale: 1.0
                 example = {
                     "context": {
-                        "extrinsics": extrinsics[context_indices],
-                        "intrinsics": intrinsics[context_indices],
-                        "image": context_images,
-                        "near": self.get_bound("near", len(context_indices)) / nf_scale,
-                        "far": self.get_bound("far", len(context_indices)) / nf_scale,
+                        "extrinsics": extrinsics[context_indices], # (N,4,4) N:多视角图片数量
+                        "intrinsics": intrinsics[context_indices], # (N,3,3) 相机内参：归一化值
+                        "image": context_images, # (N,3,h,w) 图像：归一化值
+                        "near": self.get_bound("near", len(context_indices)) / nf_scale, # N 深度范围的边界值
+                        "far": self.get_bound("far", len(context_indices)) / nf_scale, # N
                         "index": context_indices,
                     },
                     "target": {
@@ -197,11 +201,12 @@ class DatasetRE10k(IterableDataset):
                         "far": self.get_bound("far", len(target_indices)) / nf_scale,
                         "index": target_indices,
                     },
-                    "scene": scene,
+                    "scene": scene, # todo 场景ID，例如'5aca87f95a9412c6'
                 }
                 if self.stage == "train" and self.cfg.augment:
                     example = apply_augmentation_shim(example)
-                yield apply_crop_shim(example, tuple(self.cfg.image_shape))
+                # todo: 对图像缩放，并进行中心裁剪
+                yield apply_crop_shim(example, tuple(self.cfg.image_shape)) # self.cfg.image_shape:(256,256)
 
     def convert_poses(
         self,
@@ -210,12 +215,12 @@ class DatasetRE10k(IterableDataset):
         Float[Tensor, "batch 4 4"],  # extrinsics
         Float[Tensor, "batch 3 3"],  # intrinsics
     ]:
-        b, _ = poses.shape
+        b, _ = poses.shape # todo b: 图片数量
 
         # Convert the intrinsics to a 3x3 normalized K matrix.
         intrinsics = torch.eye(3, dtype=torch.float32)
         intrinsics = repeat(intrinsics, "h w -> b h w", b=b).clone()
-        fx, fy, cx, cy = poses[:, :4].T
+        fx, fy, cx, cy = poses[:, :4].T # todo 0-3 相机内参：fx,fy,cx,cy # 归一化单位：图像尺寸W×H：fx/W,fy/H,cx/W,cx/H
         intrinsics[:, 0, 0] = fx
         intrinsics[:, 1, 1] = fy
         intrinsics[:, 0, 2] = cx
@@ -223,7 +228,8 @@ class DatasetRE10k(IterableDataset):
 
         # Convert the extrinsics to a 4x4 OpenCV-style W2C matrix.
         w2c = repeat(torch.eye(4, dtype=torch.float32), "h w -> b h w", b=b).clone()
-        w2c[:, :3] = rearrange(poses[:, 6:], "b (h w) -> b h w", h=3, w=4)
+        w2c[:, :3] = rearrange(poses[:, 6:], "b (h w) -> b h w", h=3, w=4) # todo 6-17 相机外参(3×4矩阵，12个元素) 旋转3×3：无单位，平移3×1：米
+        # todo w2c.inverse(): 求逆，得到相机位姿
         return w2c.inverse(), intrinsics
 
     def convert_images(

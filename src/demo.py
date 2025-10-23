@@ -28,6 +28,7 @@ from src.model.model_wrapper import ModelWrapper
 # todo 数据集相关
 from src.dataset.data_module import DataModule
 
+
 def cyan(text: str) -> str:
     return f"{Fore.CYAN}{text}{Fore.RESET}"
 
@@ -62,7 +63,7 @@ def main(cfg_dict: DictConfig):
         "train_cfg": cfg.train,
         "encoder": encoder,
         "encoder_visualizer": encoder_visualizer,
-        "decoder": get_decoder(cfg.model.decoder, cfg.dataset),
+        "decoder": get_decoder(cfg.model.decoder, cfg.dataset), #! 这里用到了cfg.dataset, bg_color
         "losses": get_losses(cfg.loss),
         "step_tracker": step_tracker,
     }
@@ -81,13 +82,39 @@ def main(cfg_dict: DictConfig):
 
     # todo -------------------------#
     # todo (10.22 wys) 数据集定义
-    data_module = DataModule(
-        cfg.dataset, #! cfg.dataset.name: re10k
-        cfg.data_loader,
-        step_tracker,
-        global_rank=0, # todo global_rank = 0
-    )
-    val_dataloader = data_module.test_dataloader()
+    if cfg.dataset.name == 're10k':
+        data_module = DataModule(
+            cfg.dataset, #! cfg.dataset.name: re10k
+            cfg.data_loader,
+            step_tracker,
+            global_rank=0, # todo global_rank = 0
+        )
+        val_dataloader = data_module.test_dataloader()
+    elif cfg.dataset.name == 'nuscences':
+        # todo 定义nuScence dadaset
+        from src.dataset.dataset_nuscences import nuScenesDataset
+        from torch.utils.data import DataLoader
+
+        demo_dataset = nuScenesDataset(
+            cfg.dataset.resolution,
+            split="demo",
+            use_center=cfg.dataset.use_center,
+            use_first=cfg.dataset.use_first,
+            use_last = cfg.dataset.use_last,
+            near = cfg.dataset.near,
+            far = cfg.dataset.far,
+        )
+        val_dataloader = DataLoader(
+            demo_dataset,
+            cfg.data_loader.test.batch_size,
+            shuffle=False,
+            num_workers=cfg.data_loader.test.num_workers
+        )
+    else:
+        raise ValueError(f'unsupported dataset: {cfg.dataset.name}')
+
+
+
 
 
     with torch.no_grad():

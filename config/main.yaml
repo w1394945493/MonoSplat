@@ -1,8 +1,8 @@
 defaults:
   - dataset: re10k
-  - optional dataset/view_sampler_dataset_specific_config: ${dataset/view_sampler}_${dataset}
+  - optional dataset/view_sampler_dataset_specific_config: ${dataset/view_sampler}_${dataset} # todo dataset配置下应该有一个view_sampler字段
   - model/encoder: costvolume
-  - model/decoder: splatting_cuda
+  - model/decoder: splatting_cuda # todo 使用model/decoder/splatting_cuda.yaml -> cfg.model.decoder
   - loss: [mse]
 
 wandb:
@@ -15,7 +15,7 @@ wandb:
 mode: train
 
 dataset:
-  overfit_to_scene: null
+  overfit_to_scene: null # todo cfg.dataset覆盖或追加该字段
 
 data_loader:
   # Avoid having to spin up new processes to print out visualizations.
@@ -27,7 +27,7 @@ data_loader:
   test:
     num_workers: 4
     persistent_workers: false
-    batch_size: 1
+    batch_size: 1 # todo
     seed: 2345
   val:
     num_workers: 1

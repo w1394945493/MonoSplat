@@ -1,0 +1,9 @@
+defaults:
+  - view_sampler: bounded
+
+name: nuscences
+background_color: [0.0, 0.0, 0.0]
+resolution: [224,400]
+use_center: true
+use_first: false
+use_last: false
