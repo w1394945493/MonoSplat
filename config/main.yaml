@@ -46,12 +46,12 @@ checkpointing:
   save_top_k: -1
   pretrained_model: null # todo trian时，从此路径加载预训练模型权重
   pretrained_monodepth: null # todo train时，从此路径加载特征提取预训练权重
-  resume: true
+  resume: true # todo  当这个为true时，从pretrained_model加载
 
 train:
   depth_mode: null
   extended_visualization: false
-  print_log_every_n_steps: 1
+  print_log_every_n_steps: 1 #? 每隔多少次打印一次
 
 test:
   output_path: outputs/test # todo test时，结果保存在此路径下
@@ -63,7 +63,7 @@ test:
 seed: 111123
 
 trainer:
-  max_steps: -1
+  max_steps: 1
   val_check_interval: 0.5
   gradient_clip_val: 0.5
   num_sanity_val_steps: 2

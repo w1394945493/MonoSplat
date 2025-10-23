@@ -3,7 +3,7 @@ from setproctitle import setproctitle
 setproctitle("wangyushen")
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
 
 from pathlib import Path
@@ -25,7 +25,8 @@ from pytorch_lightning.loggers.wandb import WandbLogger
 
 import sys
 sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
-# ? 
+# ? -----------------------------------------#
+# ? 10.23 注释以下内容(限制的太严格了)
 # Configure beartype and jaxtyping.
 # with install_import_hook(
 #     ("src",), # todo：指定项目中的模块路径
@@ -157,6 +158,7 @@ def train(cfg_dict: DictConfig):
             step_tracker,
             global_rank=trainer.global_rank,
         )
+    #? -----------------------------#
     #? 增加了nuscences (wys 10.23)
     elif cfg.dataset.name == 'nuscences':
         from src.dataset.data_module_nuscences import DataModuleForNuScences
