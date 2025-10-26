@@ -4,7 +4,7 @@ setproctitle("wangyushen")
 
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
-os.environ["CUDA_VISIBLE_DEVICES"] = "6"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 from pathlib import Path
 import warnings
@@ -129,11 +129,11 @@ def train(cfg_dict: DictConfig):
         # strategy="ddp" if torch.cuda.device_count() > 1 else "auto",
         strategy=DDPStrategy(find_unused_parameters=True),
         callbacks=callbacks,
-        val_check_interval=cfg.trainer.val_check_interval,
+        val_check_interval=cfg.trainer.val_check_interval, # todo 若0-1之间，如0.5，则为每个epoch的50%时评估一次；大于1时(整数)，每隔多少迭代步评估一次
         # enable_progress_bar=cfg.mode == "test",
-        enable_progress_bar=True, #todo  是否显示进度条
+        enable_progress_bar=True, #todo  是否显示进度条 True/False
         gradient_clip_val=cfg.trainer.gradient_clip_val,
-        max_steps=cfg.trainer.max_steps,
+        max_steps=cfg.trainer.max_steps, # todo 最大训练步数
         num_sanity_val_steps=cfg.trainer.num_sanity_val_steps, # todo 正式训练前做的安全检查
         # log_every_n_steps=1, # todo 默认50，每多少步记录一次日志
     )
