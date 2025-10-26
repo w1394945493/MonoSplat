@@ -3,8 +3,8 @@ from setproctitle import setproctitle
 setproctitle("wangyushen")
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "4,5,6,7"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
+os.environ["CUDA_VISIBLE_DEVICES"] = "6"
 
 from pathlib import Path
 import warnings
@@ -22,7 +22,7 @@ from pytorch_lightning.callbacks import (
 )
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.strategies import DDPStrategy
-
+from pytorch_lightning.callbacks import TQDMProgressBar
 import sys
 sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
 # ? -----------------------------------------#
@@ -80,34 +80,35 @@ def train(cfg_dict: DictConfig):
             wandb_extra_kwargs.update({'id': cfg_dict.wandb.id,
                                        'resume': "must"})
         logger = WandbLogger(
-            entity=cfg_dict.wandb.entity,
-            project=cfg_dict.wandb.project,
-            mode=cfg_dict.wandb.mode,
-            name=f"{cfg_dict.wandb.name} ({output_dir.parent.name}/{output_dir.name})",
+            entity=cfg_dict.wandb.entity, # todo 在wandb的组织或用户名
+            project=cfg_dict.wandb.project, # todo 项目名
+            mode=cfg_dict.wandb.mode, # todo 运行模式：online联网上传、offline本地保存
+            name=f"{cfg_dict.wandb.name} ({output_dir.parent.name}/{output_dir.name})", # todo 运行名
             tags=cfg_dict.wandb.get("tags", None),
             log_model=False,
-            save_dir=output_dir,
+            save_dir=output_dir, # todo wandb 本地缓存路径
             config=OmegaConf.to_container(cfg_dict),
             **wandb_extra_kwargs,
         )
-        callbacks.append(LearningRateMonitor("step", True))
+        callbacks.append(LearningRateMonitor("step", True)) # todo LearningRateMonitor：记录学习率变化
 
         # On rank != 0, wandb.run is None.
         if wandb.run is not None:
             wandb.run.log_code("src")
     else:
-        logger = LocalLogger()
+        logger = LocalLogger() #! todo 自定义的logger指存图
 
     # Set up checkpointing.
     callbacks.append(
         ModelCheckpoint(
-            output_dir / "checkpoints",
-            every_n_train_steps=cfg.checkpointing.every_n_train_steps,
-            save_top_k=cfg.checkpointing.save_top_k,
-            monitor="info/global_step",
-            mode="max",  # save the lastest k ckpt, can do offline test later
+            output_dir / "checkpoints", # todo 保存路径
+            every_n_train_steps=cfg.checkpointing.every_n_train_steps, # todo 每隔多少步保存一次
+            save_top_k=cfg.checkpointing.save_top_k, # todo 只保留多少个模型
+            monitor="info/global_step", # todo 监控全局训练部署，用于判断哪个checkpoint是最新的
+            mode="max",  # save the lastest k ckpt, can do offline test later # todo 步数越大表示越新，取最大
         )
     )
+    # callbacks.append(TQDMProgressBar(refresh_rate=10))
     for cb in callbacks:
         cb.CHECKPOINT_EQUALS_CHAR = '_'
 
@@ -117,21 +118,24 @@ def train(cfg_dict: DictConfig):
 
     # This allows the current step to be shared with the data loader processes.
     step_tracker = StepTracker()
-
+    # todo -----------------------------------#
+    # todo Trainer: from pytorch_lightning import Trainer
     trainer = Trainer(
         max_epochs=-1,
         accelerator="gpu",
         logger=logger,
-        devices="auto", # todo 自动调用所有可用gpu训练
+        devices="auto", # todo 自动调用所有可用gpu训练(可用显卡：如CUDA_VISIBLE_DEVICES=3,4,5,6)
         num_nodes=cfg.trainer.num_nodes, # todo 1 单机
         # strategy="ddp" if torch.cuda.device_count() > 1 else "auto",
         strategy=DDPStrategy(find_unused_parameters=True),
         callbacks=callbacks,
         val_check_interval=cfg.trainer.val_check_interval,
-        enable_progress_bar=cfg.mode == "test",
+        # enable_progress_bar=cfg.mode == "test",
+        enable_progress_bar=True, #todo  是否显示进度条
         gradient_clip_val=cfg.trainer.gradient_clip_val,
         max_steps=cfg.trainer.max_steps,
-        num_sanity_val_steps=cfg.trainer.num_sanity_val_steps,
+        num_sanity_val_steps=cfg.trainer.num_sanity_val_steps, # todo 正式训练前做的安全检查
+        # log_every_n_steps=1, # todo 默认50，每多少步记录一次日志
     )
     torch.manual_seed(cfg_dict.seed + trainer.global_rank)
 
@@ -141,7 +145,7 @@ def train(cfg_dict: DictConfig):
     model_kwargs = {
         "optimizer_cfg": cfg.optimizer,
         "test_cfg": cfg.test,
-        "train_cfg": cfg.train,
+        "train_cfg": cfg.train, #! cfg.train
         "encoder": encoder,
         "encoder_visualizer": encoder_visualizer,
         "decoder": get_decoder(cfg.model.decoder, cfg.dataset),

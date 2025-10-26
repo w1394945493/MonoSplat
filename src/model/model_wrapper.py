@@ -186,18 +186,21 @@ class ModelWrapper(LightningModule):
             total_loss = total_loss + loss
         self.log("loss/total", total_loss)
 
-        if (
-            self.global_rank == 0
-            and self.global_step % self.train_cfg.print_log_every_n_steps == 0
-        ):
-            print(
-                f"train step {self.global_step}; "
-                f"scene = {[x[:20] for x in batch['scene']]}; "
-                f"context = {batch['context']['index'].tolist()}; "
-                f"bound = [{batch['context']['near'].detach().cpu().numpy().mean()} "
-                f"{batch['context']['far'].detach().cpu().numpy().mean()}]; "
-                f"loss = {total_loss:.6f}"
-            )
+        # todo: 打印内容
+        # if (
+        #     self.global_rank == 0
+        #     and self.global_step % self.train_cfg.print_log_every_n_steps == 0
+        # ):
+        #     print(
+        #         f"train step {self.global_step}; "
+        #         f"scene = {[x[:20] for x in batch['scene']]}; "
+        #         f"context = {batch['context']['index'].tolist()}; "
+        #         f"bound = [{batch['context']['near'].detach().cpu().numpy().mean()} "
+        #         f"{batch['context']['far'].detach().cpu().numpy().mean()}]; "
+        #         f"loss = {total_loss:.6f}"
+        #     )
+        # todo ----------------------------#
+        # todo .log(): 
         self.log("info/near", batch["context"]["near"].detach().cpu().numpy().mean())
         self.log("info/far", batch["context"]["far"].detach().cpu().numpy().mean())
         self.log("info/global_step", self.global_step)  # hack for ckpt monitor
@@ -390,12 +393,12 @@ class ModelWrapper(LightningModule):
     def validation_step(self, batch, batch_idx):
         batch: BatchedExample = self.data_shim(batch)
 
-        if self.global_rank == 0:
-            print(
-                f"validation step {self.global_step}; "
-                f"scene = {[a[:20] for a in batch['scene']]}; "
-                f"context = {batch['context']['index'].tolist()}"
-            )
+        # if self.global_rank == 0:
+        #     print(
+        #         f"validation step {self.global_step}; "
+        #         f"scene = {[a[:20] for a in batch['scene']]}; "
+        #         f"context = {batch['context']['index'].tolist()}" # todo 打印 输入视图的索引
+        #     )
 
         # Render Gaussians.
         b, _, _, h, w = batch["target"]["image"].shape

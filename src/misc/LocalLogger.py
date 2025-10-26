@@ -14,7 +14,7 @@ class LocalLogger(Logger):
         super().__init__()
         self.experiment = None
         os.system(f"rm -r {LOG_PATH}")
-
+    
     @property
     def name(self):
         return "LocalLogger"

@@ -6,8 +6,10 @@ defaults:
   - loss: [mse]
 
 wandb:
-  project: anysplat
-  entity: vvvsice
+  # project: anysplat # todo project: 项目名字
+  project: monosplat
+  # entity: vvvsice
+  entity: 1394945493-beijing-institute-of-technology # todo 项目归属用户或团队
   name: placeholder
   mode: online
   id: null
@@ -66,7 +68,8 @@ trainer:
   max_steps: 1 #! 最大迭代次数，即迭代多少次后停止
   val_check_interval: 0.5 #! 0-1之间，如0.5 训练一半评估；大于1，整数，迭代多少此后评估
   gradient_clip_val: 0.5 #! 控制梯度大小
-  num_sanity_val_steps: 2
+  # num_sanity_val_steps: 2 #! 正式训练之前跑几个验证batch检查数据流和模型是否正常
+  num_sanity_val_steps: 0
   num_nodes: 1
 
 output_dir: null
