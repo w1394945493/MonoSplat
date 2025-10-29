@@ -81,7 +81,7 @@ class DataModuleForNuScences(LightningDataModule):
         )
         return DataLoader(
             dataset=test_dataset,
-            batch_size=self.data_loader_cfg.val.batch_size,
-            num_workers=self.data_loader_cfg.val.num_workers,
+            batch_size=self.data_loader_cfg.test.batch_size,
+            num_workers=self.data_loader_cfg.test.num_workers,
             shuffle=False,
         )

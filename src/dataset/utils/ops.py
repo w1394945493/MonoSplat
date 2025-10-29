@@ -354,6 +354,7 @@ def get_fov_gaussian(P):
 
 
 def get_cam_info_gaussian(c2w, fovx, fovy, znear, zfar):
+    # todo (wys 10.27)
     c2w = convert_pose(c2w)
     world_view_transform = torch.inverse(c2w.float())
 

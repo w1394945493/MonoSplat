@@ -79,8 +79,29 @@ CUDA_VISIBLE_DEVICES=7 python /home/lianghao/wangyushen/Projects/MonoSplat/src/m
     trainer.max_steps=100_001 \
     trainer.val_check_interval=5_000 \
     checkpointing.every_n_train_steps=10_000 \
+    train.print_log_every_n_steps=100 \
     wandb.project=monosplat_112x200 \
     output_dir=/home/lianghao/wangyushen/data/wangyushen/Output/mono_splat/nuscenes/train_2_112x200
+
+CUDA_VISIBLE_DEVICES=7 python /home/lianghao/wangyushen/Projects/MonoSplat/src/main.py \
+    +experiment=nuscences \
+    mode=train \
+    checkpointing.pretrained_model=/home/lianghao/wangyushen/data/wangyushen/Output/mono_splat/nuscenes/train_2_112x200/checkpoints/epoch_0-step_30000.ckpt \
+    checkpointing.load=/home/lianghao/wangyushen/data/wangyushen/Output/mono_splat/nuscenes/train_2_112x200/checkpoints/epoch_0-step_30000.ckpt \
+    checkpointing.resume=true \
+    dataset.name=nuscences \
+    dataset.resolution=[112,200] \
+    data_loader.train.batch_size=1 \
+    data_loader.train.num_workers=4 \
+    data_loader.val.batch_size=1 \
+    data_loader.val.num_workers=4 \
+    trainer.max_steps=100_001 \
+    trainer.val_check_interval=5_000 \
+    checkpointing.every_n_train_steps=5_000 \
+    train.print_log_every_n_steps=100 \
+    wandb.project=monosplat_112x200 \
+    output_dir=/home/lianghao/wangyushen/data/wangyushen/Output/mono_splat/nuscenes/train_2_112x200
+
 
 #? (10.25 wys) MonoSplat 在 nuScences 数据集上评估 分辨率：112×200
 CUDA_VISIBLE_DEVICES=3,4,5,6 python /home/lianghao/wangyushen/Projects/MonoSplat/src/main.py \

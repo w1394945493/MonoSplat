@@ -4,8 +4,8 @@ setproctitle("wangyushen")
 
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "6"
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+# os.environ["COLUMNS"] = "60"
 from pathlib import Path
 import warnings
 
@@ -23,6 +23,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers.wandb import WandbLogger
 from pytorch_lightning.strategies import DDPStrategy
 from pytorch_lightning.callbacks import TQDMProgressBar
+
 import sys
 sys.path.append('/home/lianghao/wangyushen/Projects/MonoSplat/')
 # ? -----------------------------------------#
@@ -109,6 +110,7 @@ def train(cfg_dict: DictConfig):
         )
     )
     # callbacks.append(TQDMProgressBar(refresh_rate=10))
+    # callbacks.append(RichProgressBar())
     for cb in callbacks:
         cb.CHECKPOINT_EQUALS_CHAR = '_'
 
@@ -130,8 +132,8 @@ def train(cfg_dict: DictConfig):
         strategy=DDPStrategy(find_unused_parameters=True),
         callbacks=callbacks,
         val_check_interval=cfg.trainer.val_check_interval, # todo 若0-1之间，如0.5，则为每个epoch的50%时评估一次；大于1时(整数)，每隔多少迭代步评估一次
-        # enable_progress_bar=cfg.mode == "test",
-        enable_progress_bar=True, #todo  是否显示进度条 True/False
+        # enable_progress_bar=True, #todo  是否显示进度条 True/False
+        enable_progress_bar=cfg.mode == "test",
         gradient_clip_val=cfg.trainer.gradient_clip_val,
         max_steps=cfg.trainer.max_steps, # todo 最大训练步数
         num_sanity_val_steps=cfg.trainer.num_sanity_val_steps, # todo 正式训练前做的安全检查
@@ -194,6 +196,7 @@ def train(cfg_dict: DictConfig):
             model_wrapper.load_state_dict(pretrained_model, strict=strict_load)
             print(cyan(f"Loaded pretrained weights: {cfg.checkpointing.pretrained_model}"))
 
+        # todo
         trainer.fit(model_wrapper,
                     datamodule=data_module,
                     ckpt_path=(checkpoint_path if cfg.checkpointing.resume else None)

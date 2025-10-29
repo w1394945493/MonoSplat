@@ -48,7 +48,7 @@ checkpointing:
   save_top_k: -1
   pretrained_model: null # todo trian时，从此路径加载预训练模型权重
   pretrained_monodepth: null # todo train时，从此路径加载特征提取预训练权重
-  resume: true # todo  当这个为true时，从pretrained_model加载
+  resume: true # todo  当这个为true时，从checkpointing.load恢复训练
 
 train:
   depth_mode: null

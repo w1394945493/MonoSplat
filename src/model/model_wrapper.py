@@ -187,20 +187,21 @@ class ModelWrapper(LightningModule):
         self.log("loss/total", total_loss)
 
         # todo: 打印内容
-        # if (
-        #     self.global_rank == 0
-        #     and self.global_step % self.train_cfg.print_log_every_n_steps == 0
-        # ):
-        #     print(
-        #         f"train step {self.global_step}; "
-        #         f"scene = {[x[:20] for x in batch['scene']]}; "
-        #         f"context = {batch['context']['index'].tolist()}; "
-        #         f"bound = [{batch['context']['near'].detach().cpu().numpy().mean()} "
-        #         f"{batch['context']['far'].detach().cpu().numpy().mean()}]; "
-        #         f"loss = {total_loss:.6f}"
-        #     )
+        if (
+            self.global_rank == 0
+            and self.global_step % self.train_cfg.print_log_every_n_steps == 0
+        ):
+
+            print(
+                f"train step {self.global_step}: "
+                # f"scene = {[x[:20] for x in batch['scene']]}; "
+                # f"context = {batch['context']['index'].tolist()}; "
+                # f"bound = [{batch['context']['near'].detach().cpu().numpy().mean()} "
+                # f"{batch['context']['far'].detach().cpu().numpy().mean()}]; "
+                f"loss = {total_loss:.6f}"
+            )
         # todo ----------------------------#
-        # todo .log(): 
+        # todo .log():
         self.log("info/near", batch["context"]["near"].detach().cpu().numpy().mean())
         self.log("info/far", batch["context"]["far"].detach().cpu().numpy().mean())
         self.log("info/global_step", self.global_step)  # hack for ckpt monitor
@@ -226,7 +227,7 @@ class ModelWrapper(LightningModule):
                 batch["context"],
                 self.global_step, # todo：0
                 deterministic=False,
-            )
+            ) # todo：(主要)
         with self.benchmarker.time("decoder", num_calls=v):
             output = self.decoder.forward(
                 gaussians,
@@ -249,7 +250,11 @@ class ModelWrapper(LightningModule):
         # Save images.
         if self.test_cfg.save_image:
             for index, color in zip(batch["target"]["index"][0], images_prob):
+                # todo save_image: 创建结果保存路径
                 save_image(color, path / scene / f"color/{index:0>6}.png")
+                color_gt = rgb_gt[index]
+                save_image(color_gt, path / scene / f"color/{index:0>6}_gt.png")
+
 
         # save video
         if self.test_cfg.save_video:
@@ -259,7 +264,7 @@ class ModelWrapper(LightningModule):
                 path / "video" / f"{scene}_frame_{frame_str}.mp4",
             )
         # todo ---------------------------#
-        # todo 可视化结果保存
+        # todo 指标计算
         # compute scores
         if self.test_cfg.compute_scores:
             if batch_idx < self.test_cfg.eval_time_skip_steps:

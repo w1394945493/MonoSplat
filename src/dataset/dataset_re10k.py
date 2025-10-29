@@ -184,6 +184,7 @@ class DatasetRE10k(IterableDataset):
                     scale = 1
 
                 nf_scale = scale if self.cfg.baseline_scale_bounds else 1.0 # todo nf_scale: 1.0
+                # todo re10k
                 example = {
                     "context": {
                         "extrinsics": extrinsics[context_indices], # (N,4,4) N:多视角图片数量

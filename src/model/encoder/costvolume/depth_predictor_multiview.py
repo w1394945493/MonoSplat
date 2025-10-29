@@ -158,8 +158,9 @@ class DepthPredictorMultiView(nn.Module):
         state_dict = torch.load(model_url, map_location="cpu")
         self.pretrained.load_state_dict(state_dict, strict=True)
         self.pretrained.eval()
+
         del self.pretrained.mask_token  # unused
-        for param in self.pretrained.parameters():
+        for param in self.pretrained.parameters(): # todo monosplat中，有冻结操作
             param.requires_grad = False
 
         self.intermediate_layer_idx = {
@@ -297,7 +298,7 @@ class DepthPredictorMultiView(nn.Module):
         _, idx = torch.topk(distance_matrix, num_reference_views + 1, largest=False, dim=2) # [b, v, m+1] # todo 选择最近的视角作为参考
 
         # first normalize images
-        images = self.normalize_images(images) # todo 对输入图像进行标准化处理(均值/方差归一化)
+        images = self.normalize_images(images) # todo 对输入图像进行标准化处理(均值/方差归一化) (bs,v,3,h,w)
         b, v, _, ori_h, ori_w = images.shape
 
         # todo -----------------------#
@@ -305,18 +306,21 @@ class DepthPredictorMultiView(nn.Module):
         # depth anything encoder
         resize_h, resize_w = ori_h // 14 * 14, ori_w // 14 * 14
         concat = rearrange(images, "b v c h w -> (b v) c h w") # todo：将多视角图像展平，进行ViT特征提取
-        concat = F.interpolate(concat, (resize_h, resize_w), mode="bilinear", align_corners=True)
+        concat = F.interpolate(concat, (resize_h, resize_w), mode="bilinear", align_corners=True) # todo：将图像进行缩放，宽高均为14的倍数
+        # todo self.pretrained: 冻结的单目深度基础模型。采用分层特征提取策略，从单目深度编码器的中间层获取多尺度特征表示
         features = self.pretrained.get_intermediate_layers(concat,
                                                            self.intermediate_layer_idx[self.vit_type],
                                                            return_class_token=True)
-        # new decoder
-        features_mono, disps_rel = self.depth_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo 单视角特征用于单目深度
-        features_mv = self.cost_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo features_mv: 用于多视角特征融合
+        # todo self.depth_head:单目先验提取 (bv,64,h,w)
+        # new decoder：features_mono: (bv,64,h,w) disps_rel: (bv,1,H,W)
+        features_mono, disps_rel = self.depth_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo
+        # todo 采用DPT架构，用于将多尺度特征整合为统一表示：即多尺度特征融合，聚合后的特征同时捕获细粒度几何细节和全局场景理解
+        features_mv = self.cost_head(features, patch_h=resize_h // 14, patch_w=resize_w // 14) # todo features_mv:
 
         # todo -----------------------#
-        # todo 3) 多视角特征增强：
-        features_mv = F.interpolate(features_mv, (64, 64), mode="bilinear", align_corners=True)
-        features_mv = mv_feature_add_position(features_mv, 2, 64)
+        # todo 3) 多视角特征增强：(3.1.1节)
+        features_mv = F.interpolate(features_mv, (64, 64), mode="bilinear", align_corners=True) # todo (bv,c,64,64)
+        features_mv = mv_feature_add_position(features_mv, 2, 64) # todo 增加位置编码
         features_mv_list = list(torch.unbind(rearrange(features_mv, "(b v) c h w -> b v c h w", b=b, v=v), dim=1))
         features_mv_list = self.transformer(
             features_mv_list,
@@ -324,11 +328,12 @@ class DepthPredictorMultiView(nn.Module):
             nn_matrix=idx,
         )
         features_mv = rearrange(torch.stack(features_mv_list, dim=1), "b v c h w -> (b v) c h w")  # [BV, C, H, W]
-
+        # todo：高斯集成预测(3.2节)：多视图特征可以实现用于高斯参数预测的代价体构建，但是在遮挡、无纹理以及高光等场景下存在局限性，
+        # todo：提出的集成高斯预测方法，将来自深度基础模型丰富的单目特征融入到代价体计算以及后续的高斯参数预测过程中，有效利用几何先验信息，实现在多样复杂条件下更鲁棒的高斯参数预测
         # todo -----------------------#
-        # todo 4) 代价体构建：
+        # todo 4) 代价体构建：采用平面扫描立体方法编码跨视角的特征匹配信息
         # cost volume construction
-        # todo 根据深度候选点对特征进行投影(视差候选)
+        # todo 准备数据：prepare_feat_proj_data_lists()
         features_mv_warped, intr_warped, poses_warped = (
             prepare_feat_proj_data_lists(
                 rearrange(features_mv, "(b v) c h w -> b v c h w", v=v, b=b),
@@ -337,12 +342,13 @@ class DepthPredictorMultiView(nn.Module):
                 num_reference_views=num_reference_views,
                 idx=idx)
         )
+        # todo 根据预定义的深度范围(near ~ far)，采用一组均匀的深度值
         min_disp = rearrange(1.0 / far.clone().detach(), "b v -> (b v) ()")
         max_disp = rearrange(1.0 / near.clone().detach(), "b v -> (b v) ()")
-        disp_range_norm = torch.linspace(0.0, 1.0, self.num_depth_candidates).to(min_disp.device)
+        disp_range_norm = torch.linspace(0.0, 1.0, self.num_depth_candidates).to(min_disp.device) # todo num_depth_candidates候选深度数量：128
         disp_candi_curr = (min_disp + disp_range_norm.unsqueeze(0) * (max_disp - min_disp)).type_as(features_mv)
         disp_candi_curr = repeat(disp_candi_curr, "bv d -> bv d fh fw", fh=features_mv.shape[-2], fw=features_mv.shape[-1])  # [bxv, d, 1, 1]
-
+        # todo 根据
         raw_correlation_in = []
         for i in range(num_reference_views):
             features_mv_warped_i = warp_with_pose_depth_candidates(

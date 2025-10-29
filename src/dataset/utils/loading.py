@@ -18,11 +18,12 @@ def load_info(info):
     img_path = info["data_path"]
     # use lidar coordinate of the key frame as the world coordinate
     c2w = info["sensor2lidar_transform"]
+    # todo (wys 10.27) 不再flip_yz
     # opencv cam -> opengl cam, maybe not necessary!
-    flip_yz = np.eye(4)
-    flip_yz[1, 1] = -1
-    flip_yz[2, 2] = -1
-    c2w = c2w@flip_yz # todo: 把OpenCV坐标系(y向下，z向前)转换到OpenGL坐标系(z向上)
+    # flip_yz = np.eye(4)
+    # flip_yz[1, 1] = -1
+    # flip_yz[2, 2] = -1
+    # c2w = c2w@flip_yz # todo: 把OpenCV坐标系(y向下，z向前)转换到OpenGL坐标系(z向上)
 
     lidar2cam_r = np.linalg.inv(info["sensor2lidar_rotation"])
     lidar2cam_t = info["sensor2lidar_translation"] @ lidar2cam_r.T

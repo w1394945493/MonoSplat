@@ -272,6 +272,8 @@ class nuScenesDataset(Dataset):
         if self.use_center: # todo: 默认为True
             for cam in self.camera_types: # ['CAM_FRONT', 'CAM_FRONT_RIGHT', 'CAM_FRONT_LEFT', 'CAM_BACK', 'CAM_BACK_LEFT', 'CAM_BACK_RIGHT']
                 info = copy.deepcopy(sensor_info_center[cam])
+                # todo ---------------------------------#
+                #! (wys 10.27) omni-scene load_info(): 里面有一步flip_yz操作!
                 img_path, c2w, w2c = load_info(info) # c2w/w2c:(4,4)
                 img_path = img_path.replace(self.dataset_prefix, self.data_root)
                 input_img_paths.append(img_path) # 图像路径列表
