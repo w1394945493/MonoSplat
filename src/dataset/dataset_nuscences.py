@@ -164,12 +164,14 @@ class nuScenesDataset(Dataset):
         elif split == "val":
             # for visualization during training
             self.bin_tokens = json.load(open(osp.join(self.data_root, self.data_version, "bins_val_3.2m.json")))["bins"] # todo len -> 30080
-            self.bin_tokens = self.bin_tokens[:30000:3000][:10] # todo 取10个元素
+            # self.bin_tokens = self.bin_tokens[:30000:3000][:10] # todo 取10个元素
+            # self.bin_tokens = self.bin_tokens[0::14][:2048]  # 每隔 14 个取一个，取 2048 个
+            self.bin_tokens = self.bin_tokens[0::14][:10]
         elif split == "test":
             # for evaluation
             self.bin_tokens = json.load(open(osp.join(self.data_root, self.data_version, "bins_val_3.2m.json")))["bins"] # todo len -> 30080
             # mini test
-            #self.bin_tokens = self.bin_tokens[0::14][:2048]
+            self.bin_tokens = self.bin_tokens[0::14][:10]
         elif split == "demo": # todo 跑demo.py脚本时用
             # super mini test
             self.bin_tokens = bins_demo

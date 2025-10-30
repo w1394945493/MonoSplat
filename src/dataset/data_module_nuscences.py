@@ -54,7 +54,8 @@ class DataModuleForNuScences(LightningDataModule):
         val_dataset = nuScenesDataset(
             self.dataset_cfg.resolution,
             # split = "demo",
-            split = 'test',
+            # split = 'test',
+            split = 'val',
             use_center=self.dataset_cfg.use_center,
             use_first=self.dataset_cfg.use_first,
             use_last = self.dataset_cfg.use_last,
@@ -71,8 +72,8 @@ class DataModuleForNuScences(LightningDataModule):
     def test_dataloader(self):
         test_dataset = nuScenesDataset(
             self.dataset_cfg.resolution,
-            split = "demo",
-            # split = "test",
+            # split = "demo",
+            split = "test",
             use_center=self.dataset_cfg.use_center,
             use_first=self.dataset_cfg.use_first,
             use_last = self.dataset_cfg.use_last,

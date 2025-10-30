@@ -126,7 +126,7 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
             context["far"],
             gaussians_per_pixel=gpp, # 每个像素的高斯
             deterministic=deterministic,
-        ) # todo depths: (bs,v,h*w,1,1) densitites: (bs,v,h*w,1,1) raw_gaussians: (bs,v,h*w,84)
+        ) # todo depths: (bs,v,h*w,1,1) densitites: (bs,v,h*w,1,1) raw_gaussians: (bs,v,h*w,84) 深度 不透明度 原始高斯
 
         # Convert the features and depths into Gaussians.
         xy_ray, _ = sample_image_grid((h, w), device)
@@ -136,10 +136,11 @@ class EncoderCostVolume(Encoder[EncoderCostVolumeCfg]):
             "... (srf c) -> ... srf c",
             srf=self.cfg.num_surfaces,
         )
-        offset_xy = gaussians[..., :2].sigmoid()
+        offset_xy = gaussians[..., :2].sigmoid() # todo 偏移量
         pixel_size = 1 / torch.tensor((w, h), dtype=torch.float32, device=device)
         xy_ray = xy_ray + (offset_xy - 0.5) * pixel_size
         gpp = self.cfg.gaussians_per_pixel
+        # todo gaussian_adapter: 聚合所有输入图像的高斯属性
         gaussians = self.gaussian_adapter.forward(
             rearrange(context["extrinsics"], "b v i j -> b v () () () i j"),
             rearrange(context["intrinsics"], "b v i j -> b v () () () i j"),

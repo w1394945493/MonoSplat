@@ -1,10 +1,10 @@
 # 设置进程名
 from setproctitle import setproctitle
-setproctitle("wangyushen")
+setproctitle("wys")
 
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "3,4,5,6"
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 # os.environ["COLUMNS"] = "60"
 from pathlib import Path
 import warnings

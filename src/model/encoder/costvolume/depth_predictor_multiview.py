@@ -328,9 +328,10 @@ class DepthPredictorMultiView(nn.Module):
             nn_matrix=idx,
         )
         features_mv = rearrange(torch.stack(features_mv_list, dim=1), "b v c h w -> (b v) c h w")  # [BV, C, H, W]
+        # todo -----------------------#
         # todo：高斯集成预测(3.2节)：多视图特征可以实现用于高斯参数预测的代价体构建，但是在遮挡、无纹理以及高光等场景下存在局限性，
         # todo：提出的集成高斯预测方法，将来自深度基础模型丰富的单目特征融入到代价体计算以及后续的高斯参数预测过程中，有效利用几何先验信息，实现在多样复杂条件下更鲁棒的高斯参数预测
-        # todo -----------------------#
+        # todo 3.2.1 集成代价体构建：
         # todo 4) 代价体构建：采用平面扫描立体方法编码跨视角的特征匹配信息
         # cost volume construction
         # todo 准备数据：prepare_feat_proj_data_lists()
@@ -339,7 +340,7 @@ class DepthPredictorMultiView(nn.Module):
                 rearrange(features_mv, "(b v) c h w -> b v c h w", v=v, b=b),
                 intrinsics,
                 extrinsics,
-                num_reference_views=num_reference_views,
+                num_reference_views=num_reference_views, # todo num_reference_views: 参考视图数量
                 idx=idx)
         )
         # todo 根据预定义的深度范围(near ~ far)，采用一组均匀的深度值
@@ -348,43 +349,46 @@ class DepthPredictorMultiView(nn.Module):
         disp_range_norm = torch.linspace(0.0, 1.0, self.num_depth_candidates).to(min_disp.device) # todo num_depth_candidates候选深度数量：128
         disp_candi_curr = (min_disp + disp_range_norm.unsqueeze(0) * (max_disp - min_disp)).type_as(features_mv)
         disp_candi_curr = repeat(disp_candi_curr, "bv d -> bv d fh fw", fh=features_mv.shape[-2], fw=features_mv.shape[-1])  # [bxv, d, 1, 1]
-        # todo 根据
+        # todo warp_with_pose_depth_candiadates(): 基于视角变换和深度信息，将给定的特征图在不同深度候选(即多个深度图)的情况下进行重投影，从而生成与目标视角对应的特征图
         raw_correlation_in = []
         for i in range(num_reference_views):
-            features_mv_warped_i = warp_with_pose_depth_candidates(
-                features_mv_warped[:, i, :, :, :],
-                intr_warped[:, i, :, :],
-                poses_warped[:, i, :, :],
-                1 / disp_candi_curr,
-                warp_padding_mode="zeros"
+            # todo 根据采样深度和外参将特征反投影到三维空间，再通过相机矩阵将三维点投影回2D，通过几何变换，将邻近视图对齐到参考视图
+            features_mv_warped_i = warp_with_pose_depth_candidates( # todo：像素网格 -> (根据外参) 3D -> (根据内参) -> 2D -> 将图像特征重投影
+                features_mv_warped[:, i, :, :, :], # todo 输入图像特征图 (B,C,H,W)
+                intr_warped[:, i, :, :], # todo 相机内参 (B,3,3) 用于将3D世界坐标变换到2D图像坐标
+                poses_warped[:, i, :, :], # todo 相机外参 (B,4,4)
+                1 / disp_candi_curr, # todo 深度图
+                warp_padding_mode="zeros" # todo 图像变换时的填充模式
             ) # [B*V, C, D, H, W]
+            # todo 初始的代价体构建：计算变换后特征图和参考视图特征之间的相似度，帮助判断不同视角之间的相似性
             raw_correlation_in_i = (features_mv.unsqueeze(2) * features_mv_warped_i).sum(1) / (features_mv.shape[1]**0.5) # [B*V, D, H, W]
             raw_correlation_in.append(raw_correlation_in_i)
         raw_correlation_in = torch.mean(torch.stack(raw_correlation_in, dim=1), dim=1)  # [B*V, D, H, W]
-
         # todo -----------------------#
         # todo 5) 代价体优化和深度预测：
         # refine cost volume and get depths
         features_mono_tmp = F.interpolate(features_mono, (64, 64), mode="bilinear", align_corners=True)
-        raw_correlation_in = torch.cat((raw_correlation_in, features_mv, features_mono_tmp), dim=1)
+        raw_correlation_in = torch.cat((raw_correlation_in, features_mv, features_mono_tmp), dim=1) # todo 式(4): concat 将单目特征、多视图特征和初始代价体进行结合
+        # todo 通过专门的网络来优化代价体：
         raw_correlation = self.corr_refine_net(raw_correlation_in)
-        raw_correlation = raw_correlation + self.regressor_residual(raw_correlation_in)
-        pdf = F.softmax(self.depth_head_lowres(raw_correlation), dim=1)
-        disps_metric = (disp_candi_curr * pdf).sum(dim=1, keepdim=True)
+        raw_correlation = raw_correlation + self.regressor_residual(raw_correlation_in) # todo (bv,D,h,w)
+        # todo 优化后的代价体，通过softmax进行概率处理，得到概率分布
+        pdf = F.softmax(self.depth_head_lowres(raw_correlation), dim=1) # todo (bv,D,h,w)
+        disps_metric = (disp_candi_curr * pdf).sum(dim=1, keepdim=True) # todo 利用得到的概率分布对每个视图的候选深度进行加权平均，计算出深度图
         pdf_max = torch.max(pdf, dim=1, keepdim=True)[0]
         pdf_max = F.interpolate(pdf_max, (ori_h, ori_w), mode="bilinear", align_corners=True)
         disps_metric_fullres = F.interpolate(disps_metric, (ori_h, ori_w), mode="bilinear", align_corners=True)
-
         # todo -----------------------#
-        # todo 6) 特征精细化：
+        # todo 6) 通过网络来整合优化后的代价体、单目特征和多视图特征，动机：
         # feature refinement
-        features_mv_in_fullres = F.interpolate(features_mv, (ori_h, ori_w), mode="bilinear", align_corners=True)
+        features_mv_in_fullres = F.interpolate(features_mv, (ori_h, ori_w), mode="bilinear", align_corners=True) # todo 通过双线性插值对多视图特征进行上采样
         features_mv_in_fullres = self.proj_feature_mv(features_mv_in_fullres)
-        features_mono_in_fullres = F.interpolate(features_mono, (ori_h, ori_w), mode="bilinear", align_corners=True)
+        features_mono_in_fullres = F.interpolate(features_mono, (ori_h, ori_w), mode="bilinear", align_corners=True) # todo 通过双线性插值对单目特征进行上采样
         features_mono_in_fullres = self.proj_feature_mono(features_mono_in_fullres)
         disps_rel_fullres = F.interpolate(disps_rel, (ori_h, ori_w), mode="bilinear", align_corners=True)
 
         images_reorder = rearrange(images, "b v c h w -> (b v) c h w")
+        # todo u-net网络处理
         refine_out = self.refine_unet(
             torch.cat((features_mv_in_fullres, features_mono_in_fullres, images_reorder, \
                 disps_metric_fullres, disps_rel_fullres, pdf_max),
@@ -392,17 +396,17 @@ class DepthPredictorMultiView(nn.Module):
             )
 
         # todo -----------------------#
-        # todo 6) 生成高斯表示和密度
+        # todo 6) 生成高斯表示: 通过两个专门的解码器头进行处理
         # gaussians head
         raw_gaussians_in = [refine_out, features_mv_in_fullres, features_mono_in_fullres, images_reorder]
         raw_gaussians_in = torch.cat(raw_gaussians_in, dim=1)
-        raw_gaussians = self.to_gaussians(raw_gaussians_in)
+        raw_gaussians = self.to_gaussians(raw_gaussians_in) # todo 用于确定高斯协方差和颜色
 
         # delta fine depth and density
         disparity_in = [refine_out, disps_metric_fullres, disps_rel_fullres, pdf_max]
         disparity_in = torch.cat(disparity_in, dim=1)
         delta_disps_density = self.to_disparity(disparity_in)
-        delta_disps, raw_densities = delta_disps_density.split(gaussians_per_pixel, dim=1)
+        delta_disps, raw_densities = delta_disps_density.split(gaussians_per_pixel, dim=1) # todo 用于预测高斯位置和不透明度
 
         # outputs
         fine_disps = (disps_metric_fullres + delta_disps).clamp(
